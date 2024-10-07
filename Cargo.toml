@@ -1,0 +1,9 @@
+[package]
+name = "qr-code-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rocket = "0.5.0"
+qrcode = "0.12"
+dotenv = "0.15.0"
