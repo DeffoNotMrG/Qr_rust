@@ -3,9 +3,11 @@
 use rocket::response::content::RawXml;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
+use rocket::config::Config;
 use qrcode::QrCode;
 use qrcode::render::svg;
 use std::env;
+use std::net::IpAddr;
 
 struct ApiKey<'r>(&'r str);
 
@@ -50,5 +52,17 @@ fn generate_qr(_api_key: ApiKey<'_>, url: String) -> RawXml<String> {
 #[launch]
 fn rocket() -> _ {
     dotenv::dotenv().ok();
-    rocket::build().mount("/", routes![generate_qr])
+
+    let port = env::var("PORT").unwrap_or_else(|_| "8000".to_string());
+    let port = port.parse().expect("PORT must be a number");
+
+    let config = Config {
+        port,
+        address: env::var("RAILWAY_PRIVATE_IP")
+            .map(|ip| ip.parse().expect("RAILWAY_PRIVATE_IP must be a valid IP"))
+            .unwrap_or(IpAddr::from([0, 0, 0, 0])),
+        ..Config::default()
+    };
+
+    rocket::custom(config).mount("/", routes![generate_qr])
 }
