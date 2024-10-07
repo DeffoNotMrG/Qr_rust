@@ -8,6 +8,7 @@ use qrcode::QrCode;
 use qrcode::render::svg;
 use std::env;
 use std::net::IpAddr;
+use log::{info, error};
 
 struct ApiKey<'r>(&'r str);
 
@@ -39,6 +40,7 @@ impl<'r> FromRequest<'r> for ApiKey<'r> {
 
 #[get("/generate?<url>")]
 fn generate_qr(_api_key: ApiKey<'_>, url: String) -> RawXml<String> {
+    info!("Generating QR code for URL: {}", url);
     let code = QrCode::new(url).unwrap();
     let svg = code.render()
         .min_dimensions(200, 200)
@@ -49,20 +51,30 @@ fn generate_qr(_api_key: ApiKey<'_>, url: String) -> RawXml<String> {
     RawXml(svg)
 }
 
+#[get("/")]
+fn hello() -> &'static str {
+    info!("Hello route accessed");
+    "Hello, world!"
+}
+
 #[launch]
 fn rocket() -> _ {
+    env_logger::init();
     dotenv::dotenv().ok();
 
-    let port = env::var("PORT").unwrap_or_else(|_| "8000".to_string());
-    let port = port.parse().expect("PORT must be a number");
+    let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let port: u16 = port.parse().expect("PORT must be a number");
+
+    info!("Using port: {}", port);
 
     let config = Config {
         port,
-        address: env::var("RAILWAY_PRIVATE_IP")
-            .map(|ip| ip.parse().expect("RAILWAY_PRIVATE_IP must be a valid IP"))
-            .unwrap_or(IpAddr::from([0, 0, 0, 0])),
+        address: IpAddr::from([0, 0, 0, 0]),
         ..Config::default()
     };
 
-    rocket::custom(config).mount("/", routes![generate_qr])
+    info!("Rocket config: {:?}", config);
+
+    rocket::custom(config)
+        .mount("/", routes![generate_qr, hello])
 }
