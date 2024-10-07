@@ -841,17 +841,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qr-code-api"
-version = "0.1.0"
-dependencies = [
- "dotenv",
- "env_logger",
- "log",
- "qrcode",
- "rocket",
-]
-
-[[package]]
 name = "qrcode"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1052,6 +1041,17 @@ dependencies = [
  "time",
  "tokio",
  "uncased",
+]
+
+[[package]]
+name = "rust_qr"
+version = "0.1.0"
+dependencies = [
+ "dotenv",
+ "env_logger",
+ "log",
+ "qrcode",
+ "rocket",
 ]
 
 [[package]]
