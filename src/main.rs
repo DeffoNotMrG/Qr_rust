@@ -1,9 +1,11 @@
 #[macro_use] extern crate rocket;
 
 use rocket::response::content::RawXml;
-use rocket::http::Status;
+use rocket::http::{Status, Header};
 use rocket::request::{FromRequest, Outcome, Request};
 use rocket::config::Config;
+use rocket::{Response};
+use rocket::fairing::{Fairing, Info, Kind};
 use qrcode::QrCode;
 use qrcode::render::svg;
 use std::env;
@@ -57,6 +59,29 @@ fn hello() -> &'static str {
     "Hello, world!"
 }
 
+pub struct CORS;
+
+#[rocket::async_trait]
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Add CORS headers to responses",
+            kind: Kind::Response
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Methods", "GET, POST, OPTIONS"));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "Content-Type, X-API-Key"));
+    }
+}
+
+#[options("/<_..>")]
+fn all_options() {
+    /* Intentionally left empty */
+}
+
 #[launch]
 fn rocket() -> _ {
     env_logger::init();
@@ -76,5 +101,6 @@ fn rocket() -> _ {
     info!("Rocket config: {:?}", config);
 
     rocket::custom(config)
-        .mount("/", routes![generate_qr, hello])
+        .mount("/", routes![generate_qr, hello, all_options])
+        .attach(CORS)
 }
