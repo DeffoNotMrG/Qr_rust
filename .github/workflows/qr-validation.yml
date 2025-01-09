@@ -1,0 +1,92 @@
+name: QR Code Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-qr:
+    name: Validate QR Output
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    
+    - name: Install ZBar (QR code reader)
+      run: sudo apt-get install -y zbar-tools
+    
+    - name: Build project
+      run: cargo build
+    
+    - name: Create test script
+      run: |
+        cat > test-qr.sh << 'EOF'
+        #!/bin/bash
+        
+        # Start the server
+        cargo run &
+        SERVER_PID=$!
+        
+        # Wait for server to start
+        sleep 5
+        
+        # Test URL
+        TEST_URL="https://github.com"
+        
+        # Generate QR code and save as SVG
+        curl -X GET "http://localhost:8080/generate?url=$TEST_URL" \
+             -H "X-API-Key: test_key" > qr.svg
+        
+        # Convert SVG to PNG (required for zbarimg)
+        convert qr.svg qr.png
+        
+        # Read QR code and verify content
+        RESULT=$(zbarimg --quiet --raw qr.png)
+        
+        # Kill server
+        kill $SERVER_PID
+        
+        # Check if the decoded URL matches the input
+        if [ "$RESULT" = "$TEST_URL" ]; then
+          echo "QR code validation successful!"
+          echo "Expected: $TEST_URL"
+          echo "Got: $RESULT"
+          exit 0
+        else
+          echo "QR code validation failed!"
+          echo "Expected: $TEST_URL"
+          echo "Got: $RESULT"
+          exit 1
+        fi
+        EOF
+        
+        chmod +x test-qr.sh
+    
+    - name: Install ImageMagick
+      run: sudo apt-get install -y imagemagick
+    
+    - name: Setup environment
+      run: |
+        echo "API_KEY=test_key" > .env
+        echo "PORT=8080" >> .env
+    
+    - name: Run QR validation
+      run: ./test-qr.sh
+    
+    - name: Upload QR code artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: qr-codes
+        path: |
+          qr.svg
+          qr.png 

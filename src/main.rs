@@ -12,6 +12,9 @@ use std::env;
 use std::net::IpAddr;
 use log::{info, error};
 
+#[cfg(test)]
+mod tests;
+
 struct ApiKey<'r>(&'r str);
 
 #[derive(Debug)]
@@ -84,7 +87,10 @@ fn all_options() {
 
 #[launch]
 fn rocket() -> _ {
-    env_logger::init();
+    if std::env::var("RUST_LOG").is_err() {
+        env_logger::init();
+    }
+    
     dotenv::dotenv().ok();
 
     let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
