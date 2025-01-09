@@ -1,16 +1,17 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 
-use rocket::response::content::RawXml;
-use rocket::http::{Status, Header};
-use rocket::request::{FromRequest, Outcome, Request};
-use rocket::config::Config;
-use rocket::{Response};
-use rocket::fairing::{Fairing, Info, Kind};
-use qrcode::QrCode;
+use log::{error, info};
 use qrcode::render::svg;
+use qrcode::QrCode;
+use rocket::config::Config;
+use rocket::fairing::{Fairing, Info, Kind};
+use rocket::http::{Header, Status};
+use rocket::request::{FromRequest, Outcome, Request};
+use rocket::response::content::RawXml;
+use rocket::Response;
 use std::env;
 use std::net::IpAddr;
-use log::{info, error};
 
 #[cfg(test)]
 mod tests;
@@ -47,12 +48,13 @@ impl<'r> FromRequest<'r> for ApiKey<'r> {
 fn generate_qr(_api_key: ApiKey<'_>, url: String) -> RawXml<String> {
     info!("Generating QR code for URL: {}", url);
     let code = QrCode::new(url).unwrap();
-    let svg = code.render()
+    let svg = code
+        .render()
         .min_dimensions(200, 200)
         .dark_color(svg::Color("#000000"))
         .light_color(svg::Color("#ffffff"))
         .build();
-    
+
     RawXml(svg)
 }
 
@@ -69,14 +71,20 @@ impl Fairing for CORS {
     fn info(&self) -> Info {
         Info {
             name: "Add CORS headers to responses",
-            kind: Kind::Response
+            kind: Kind::Response,
         }
     }
 
     async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
         response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
-        response.set_header(Header::new("Access-Control-Allow-Methods", "GET, POST, OPTIONS"));
-        response.set_header(Header::new("Access-Control-Allow-Headers", "Content-Type, X-API-Key"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "GET, POST, OPTIONS",
+        ));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Headers",
+            "Content-Type, X-API-Key",
+        ));
     }
 }
 
@@ -90,7 +98,7 @@ fn rocket() -> _ {
     if std::env::var("RUST_LOG").is_err() {
         env_logger::init();
     }
-    
+
     dotenv::dotenv().ok();
 
     let port = env::var("PORT").unwrap_or_else(|_| "8080".to_string());

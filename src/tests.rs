@@ -1,6 +1,6 @@
 use super::*;
-use rocket::local::blocking::Client;
 use rocket::http::{Header, Status};
+use rocket::local::blocking::Client;
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -16,15 +16,15 @@ fn setup() {
 
 fn create_test_client() -> Client {
     setup();
-    
+
     // Clean environment before setting test values
     std::env::remove_var("API_KEY");
     std::env::remove_var("PORT");
-    
+
     // Set up test environment
     std::env::set_var("API_KEY", "test_key");
     std::env::set_var("PORT", "8080");
-    
+
     match Client::tracked(rocket()) {
         Ok(client) => client,
         Err(e) => panic!("Failed to create test client: {:?}", e),
@@ -46,7 +46,7 @@ fn test_generate_qr_with_valid_api_key() {
         .get("/generate?url=https://ghurmy.xyz")
         .header(Header::new("X-API-Key", "test_key"))
         .dispatch();
-    
+
     assert_eq!(response.status(), Status::Ok);
     assert!(response.into_string().unwrap().contains("<svg"));
 }
@@ -54,10 +54,8 @@ fn test_generate_qr_with_valid_api_key() {
 #[test]
 fn test_generate_qr_without_api_key() {
     let client = create_test_client();
-    let response = client
-            .get("/generate?url=https://example.com")
-            .dispatch();
-    
+    let response = client.get("/generate?url=https://example.com").dispatch();
+
     assert_eq!(response.status(), Status::BadRequest);
 }
 
@@ -68,7 +66,7 @@ fn test_generate_qr_with_invalid_api_key() {
         .get("/generate?url=https://ghurmy.xyz")
         .header(Header::new("X-API-Key", "wrong_key"))
         .dispatch();
-    
+
     assert_eq!(response.status(), Status::Unauthorized);
 }
 
@@ -76,7 +74,7 @@ fn test_generate_qr_with_invalid_api_key() {
 fn test_cors_headers() {
     let client = create_test_client();
     let response = client.get("/").dispatch();
-    
+
     assert_eq!(
         response.headers().get_one("Access-Control-Allow-Origin"),
         Some("*")
@@ -95,7 +93,7 @@ fn test_cors_headers() {
 fn test_options_request() {
     let client = create_test_client();
     let response = client.options("/").dispatch();
-    
+
     assert_eq!(response.status(), Status::Ok);
 }
 
@@ -106,8 +104,8 @@ fn test_generate_qr_with_invalid_url() {
         .get("/generate?url=not_a_url")
         .header(Header::new("X-API-Key", "test_key"))
         .dispatch();
-    
+
     // The QR code library should still generate a QR code even for invalid URLs
     assert_eq!(response.status(), Status::Ok);
     assert!(response.into_string().unwrap().contains("<svg"));
-} 
+}

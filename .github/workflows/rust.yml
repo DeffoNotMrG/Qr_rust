@@ -23,6 +23,7 @@ jobs:
         profile: minimal
         toolchain: stable
         override: true
+        components: rustfmt, clippy
     
     - name: Cache dependencies
       uses: actions/cache@v3
@@ -39,7 +40,10 @@ jobs:
         echo "PORT=8080" >> .env
         cargo test -- --nocapture
     
-    - name: Check formatting
+    - name: Format code
+      run: cargo fmt
+      
+    - name: Verify formatting
       run: cargo fmt -- --check
     
     - name: Run clippy
